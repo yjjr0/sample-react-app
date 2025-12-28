@@ -13,27 +13,40 @@ interface BasicThreadListProps {
     threads: Thread[];
 }
 
+type VoteValue = 1 | -1 | 0;
+
 const BasicThreadList: React.FC<BasicThreadListProps> = ({ title, threads }) => {
-    const [votes, setVotes] = useState<Record<number, number>>({});
+    const username = localStorage.getItem("username");
+    const [voteState, setVoteState] = useState<Record<number, VoteValue>>({});
 
-    const handleUpvote = (id: number) => {
-        setVotes((prev) => ({
-            ...prev,
-            [id]: (prev[id] ?? 0) + 1,
-        }));
-    };
+    const handleVote = (threadId: number, value: VoteValue) => {
+        if (!username) {
+            return;
+        }
 
-    const handleDownvote = (id: number) => {
-        setVotes((prev) => ({
-            ...prev,
-            [id]: (prev[id] ?? 0) - 1,
-        }));
+        setVoteState((prev) => {
+            const currentVote = prev[threadId] ?? 0;
+
+            // If clicking the same vote again, remove vote
+            if (currentVote === value) {
+                return {
+                    ...prev,
+                    [threadId]: 0,
+                };
+            }
+
+            // Otherwise set new vote
+            return {
+                ...prev,
+                [threadId]: value,
+            };
+        });
     };
 
     // Sort threads by vote count (descending)
     const sortedThreads = [...threads].sort((a, b) => {
-        const votesA = votes[a.id] ?? 0;
-        const votesB = votes[b.id] ?? 0;
+        const votesA = voteState[a.id] ?? 0;
+        const votesB = voteState[b.id] ?? 0;
         return votesB - votesA;
     });
 
@@ -43,13 +56,7 @@ const BasicThreadList: React.FC<BasicThreadListProps> = ({ title, threads }) => 
 
             <ul className="thread-list">
                 {sortedThreads.map((thread) => (
-                    <BasicThreadItem
-                        key={thread.id}
-                        thread={thread}
-                        votes={votes[thread.id] ?? 0}
-                        onUpvote={handleUpvote}
-                        onDownvote={handleDownvote}
-                    />
+                    <BasicThreadItem key={thread.id} thread={thread} voteState={voteState} handleVote={handleVote} />
                 ))}
             </ul>
         </div>
